@@ -1,0 +1,9 @@
+return
+{
+  {--用户协议
+    icon="ic_supervisor_account";
+    title=res.string.userAgreement,
+    name="UserAgreement",
+    date="2024-2-17",
+  }
+}

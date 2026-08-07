@@ -1,0 +1,269 @@
+require "import"
+import "android.app.*"
+import "android.os.*"
+import "android.widget.*"
+import "android.view.*"
+import "android.graphics.*"
+import "android.graphics.drawable.*"
+import "android.content.res.ColorStateList"
+import "android.animation.ValueAnimator"
+
+function dp2px(dp)
+  return math.floor(activity.getResources().getDisplayMetrics().density * dp + 0.5)
+end
+
+local M3 = {
+  Background     = 0xFFFEF7FF,
+  Primary        = 0xFF6750A4,
+  OnPrimary      = 0xFFFFFFFF,
+  SecondaryContainer = 0xFFE8DEF8,
+  OnSecondaryContainer = 0xFF1D192B,
+  SurfaceVariant = 0xFFE7E0EC,
+  OnSurface      = 0xFF1D1B20,
+  OnSurfaceSub   = 0xFF49454F,
+  Outline        = 0xFF79747E,
+}
+
+if Build.VERSION.SDK_INT >= 31 then
+  pcall(function()
+    local res = activity.getResources()
+    M3.Primary = res.getColor(android.R.color.system_accent1_500)
+    M3.SecondaryContainer = res.getColor(android.R.color.system_accent2_100)
+    M3.SurfaceVariant = res.getColor(android.R.color.system_neutral2_100)
+  end)
+end
+
+function createM3Shape(color, radiusDp)
+  local drawable = GradientDrawable()
+  drawable.setColor(color)
+  drawable.setCornerRadius(dp2px(radiusDp))
+  return drawable
+end
+
+function createM3OutlinedShape(strokeColor, radiusDp)
+  local drawable = GradientDrawable()
+  drawable.setCornerRadius(dp2px(radiusDp))
+  drawable.setStroke(dp2px(1), strokeColor)
+  return drawable
+end
+
+function createMaterialSwitch(defaultChecked, onCheckChanged)
+  local isChecked = defaultChecked or false
+  local trackW = dp2px(52)
+  local trackH = dp2px(32)
+  local thumbOffSize = dp2px(16)
+  local thumbOnSize = dp2px(24)
+  local marginMin = dp2px(8)
+  local marginMax = dp2px(4)
+
+  local trackDrawable = GradientDrawable()
+  trackDrawable.setCornerRadius(trackH / 2)
+
+  local thumbDrawable = GradientDrawable()
+  thumbDrawable.setCornerRadius(thumbOnSize / 2)
+
+  local switchFrame = FrameLayout(activity)
+  switchFrame.setLayoutParams(ViewGroup.LayoutParams(trackW, trackH))
+
+  local trackView = View(activity)
+  trackView.setLayoutParams(FrameLayout.LayoutParams(-1, -1))
+  trackView.setBackground(trackDrawable)
+  switchFrame.addView(trackView)
+
+  local thumbView = View(activity)
+  local thumbParams = FrameLayout.LayoutParams(thumbOffSize, thumbOffSize)
+  thumbParams.gravity = Gravity.CENTER_VERTICAL
+  thumbView.setLayoutParams(thumbParams)
+  thumbView.setBackground(thumbDrawable)
+  switchFrame.addView(thumbView)
+
+  local function updateVisual(progress)
+    if progress > 0.5 then
+      trackDrawable.setColor(M3.Primary)
+      trackDrawable.setStroke(0, 0)
+    else
+      trackDrawable.setColor(M3.SurfaceVariant)
+      trackDrawable.setStroke(dp2px(2), M3.Outline)
+    end
+
+    local curSize = math.floor(thumbOffSize + (thumbOnSize - thumbOffSize) * progress + 0.5)
+    thumbParams.width = curSize
+    thumbParams.height = curSize
+
+    local minLeft = marginMin
+    local maxLeft = trackW - thumbOnSize - marginMax
+    local curLeft = math.floor(minLeft + (maxLeft - minLeft) * progress + 0.5)
+    thumbParams.leftMargin = curLeft
+
+    if progress > 0.5 then
+      thumbDrawable.setColor(M3.OnPrimary)
+    else
+      thumbDrawable.setColor(M3.Outline)
+    end
+
+    thumbView.setLayoutParams(thumbParams)
+  end
+
+  updateVisual(isChecked and 1.0 or 0.0)
+
+  switchFrame.setOnClickListener(View.OnClickListener{
+    onClick = function()
+      isChecked = not isChecked
+      local startVal = isChecked and 0.0 or 1.0
+      local endVal = isChecked and 1.0 or 0.0
+
+      local anim = ValueAnimator.ofFloat(float{startVal, endVal})
+      anim.setDuration(220)
+      anim.addUpdateListener(ValueAnimator.AnimatorUpdateListener{
+        onAnimationUpdate = function(animation)
+          local val = animation.getAnimatedValue()
+          updateVisual(val)
+        end
+      })
+      anim.start()
+
+      if onCheckChanged then
+        onCheckChanged(isChecked)
+      end
+    end
+  })
+
+  return switchFrame
+end
+
+local layout = {
+  ScrollView,
+  layout_width = "fill",
+  layout_height = "fill",
+  backgroundColor = M3.Background,
+  {
+    LinearLayout,
+    layout_width = "fill",
+    layout_height = "wrap",
+    orientation = "vertical",
+    padding = "20dp",
+    {
+      TextView,
+      text = "Material 3 综合组件",
+      textSize = "26sp",
+      typeface = Typeface.DEFAULT_BOLD,
+      textColor = M3.OnSurface,
+      layout_marginBottom = "16dp",
+    },
+    {
+      CardView,
+      layout_width = "fill",
+      layout_height = "wrap",
+      radius = "20dp",
+      cardElevation = "0dp",
+      cardBackgroundColor = M3.SurfaceVariant,
+      layout_marginBottom = "16dp",
+      {
+        LinearLayout,
+        layout_width = "fill",
+        orientation = "vertical",
+        padding = "16dp",
+        {
+          TextView,
+          text = "M3 卡片容器",
+          textSize = "16sp",
+          typeface = Typeface.DEFAULT_BOLD,
+          textColor = M3.OnSurface,
+        },
+        {
+          TextView,
+          text = "20dp 圆角与低对比度背景规范。",
+          textSize = "13sp",
+          textColor = M3.OnSurfaceSub,
+          layout_marginTop = "4dp",
+        },
+      },
+    },
+    {
+      LinearLayout,
+      layout_width = "fill",
+      orientation = "horizontal",
+      layout_marginBottom = "16dp",
+      {
+        TextView,
+        id = "chip1",
+        text = "标签一",
+        textColor = M3.OnSecondaryContainer,
+        textSize = "13sp",
+        paddingLeft = "12dp", paddingRight = "12dp",
+        paddingTop = "6dp", paddingBottom = "6dp",
+        layout_marginRight = "8dp",
+      },
+      {
+        TextView,
+        id = "chip2",
+        text = "标签二",
+        textColor = M3.OnSecondaryContainer,
+        textSize = "13sp",
+        paddingLeft = "12dp", paddingRight = "12dp",
+        paddingTop = "6dp", paddingBottom = "6dp",
+      },
+    },
+    {
+      EditText,
+      id = "m3Input",
+      hint = "M3输入框...",
+      textSize = "14sp",
+      textColor = M3.OnSurface,
+      hintTextColor = M3.Outline,
+      layout_width = "fill",
+      layout_height = "52dp",
+      paddingLeft = "16dp", paddingRight = "16dp",
+      layout_marginBottom = "16dp",
+    },
+    {
+      LinearLayout,
+      layout_width = "fill",
+      gravity = "center_vertical",
+      layout_marginBottom = "20dp",
+      {
+        TextView,
+        text = "Material Switch 开关",
+        textColor = M3.OnSurface,
+        textSize = "14sp",
+        layout_weight = "1",
+      },
+      {
+        FrameLayout,
+        id = "switchContainer",
+      },
+    },
+    {
+      Button,
+      id = "btnPrimary",
+      text = "M3 胶囊主按钮",
+      textColor = M3.OnPrimary,
+      textSize = "14sp",
+      layout_width = "fill",
+      layout_height = "48dp",
+      layout_marginBottom = "10dp",
+    },
+    {
+      Button,
+      id = "btnOutlined",
+      text = "M3 次要线框按钮",
+      textColor = M3.Primary,
+      textSize = "14sp",
+      layout_width = "fill",
+      layout_height = "48dp",
+    },
+  },
+}
+
+activity.setContentView(loadlayout(layout))
+
+chip1.setBackground(createM3Shape(M3.SecondaryContainer, 8))
+chip2.setBackground(createM3Shape(M3.SecondaryContainer, 8))
+m3Input.setBackground(createM3OutlinedShape(M3.Outline, 12))
+btnPrimary.setBackground(createM3Shape(M3.Primary, 24))
+btnOutlined.setBackground(createM3OutlinedShape(M3.Primary, 24))
+
+local m3Switch = createMaterialSwitch(true, function(checked)
+  Toast.makeText(activity, "开关状态: " .. tostring(checked), Toast.LENGTH_SHORT).show()
+end)
+switchContainer.addView(m3Switch)

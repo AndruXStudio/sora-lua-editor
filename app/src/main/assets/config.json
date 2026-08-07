@@ -1,0 +1,21 @@
+{
+
+  "label": "LuaAppX",
+  "package": "com.load.LuaAppX",
+
+  "versionName": "Alpha52",
+  "versionCode": 1099,
+
+  "minSdkVersion": "23",
+  "targetSdkVersion": "29",
+
+  "debugmode": true,
+  "debuggermode": 3,
+
+  "user_permission": [
+  ],
+
+  "skip_compilation": [
+  ]
+
+}
